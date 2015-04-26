@@ -1,0 +1,135 @@
+---
+title: "U.S. National Oceanic and Atmospheric Administration's (NOAA) storm data analysis"
+author: "Sukalpo Mitra"
+date: "Sunday, April 26, 2015"
+output: html_document
+---
+
+# Introduction
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+#Synopsis
+
+To analyze across U.S. which type of events are most harmful to population health, we first found out the total no population health affected i.e. injuries + fatalities for each event type and then sort it on descending order of population health affectd. The top 10 rows of such a data shows the top 10 events.
+
+To analyze across U.S. which type of events had the most economic consequences, we first found out the total property and crop damages for each event type and then sort it on descending order of total damages in billions. The top 10 rows of such a data shows the top 10 events.
+
+# Data
+
+The data for the analysis was downloaded from [here](http://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) at 12:57 pm on 26th April, 2015.
+
+Before proceeding with any R coding we set the working directory.
+
+```{r}
+setwd("D:/RWD")
+```
+
+The following piece of R code will download the data from the web link to your working directory. The link has the data in a zip format so we need to unzip the contents too. Once unzipped read the csv file into a data frame.
+
+```{r cache=TRUE}
+## get source file from provided URL and read into variable "data"
+url <- "http://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+url_file <- "storm_data"
+download.file(url, dest=url_file, mode="wb")
+workdir <- getwd()
+unzip (url_file, exdir = workdir)
+data <- read.csv(bzfile(url_file))
+```
+
+Here is how the structure of the data frame looks like
+
+```{r}
+str(data)
+```
+
+# Data Processing
+
+The first question that we are trying to answer is Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+The pre processing that we need to do is as follows
+
+```{r}
+library(dplyr)
+library(reshape2)
+```
+Get the columns that are required for analysis and add an extra column that shows the total population Health = Fatalities + Injuries after an event has passed. Then we shape the data that in such a way that it has event type and the total population affected due to such an event.
+
+```{r}
+reqdData <- select(data,EVTYPE,FATALITIES,INJURIES)
+reqdData <- mutate(reqdData,pophealth = FATALITIES + INJURIES)
+meltedData <- melt(reqdData,id=c("EVTYPE"), measure.vars=c("pophealth"))
+castedData <- dcast(meltedData,EVTYPE~variable,fun.aggregate=sum)
+```
+
+# Results
+
+After pre processing the data we now try to come up with a result with which we try to answer the intended question.
+To do so let us first filter out the events that caused 0 fatalities and 0 injuries and then simply arrange the data in descending order of population health. Seeing the top 10 of such a data will reveal the types of events that are most harmful for population health.
+
+```{r}
+castedData <- filter(castedData, pophealth > 0)
+castedData <- arrange(castedData,desc(pophealth))
+castedData <- rename(castedData, "Event Type" = EVTYPE, "Affected Population Health" = pophealth)
+head(castedData, 10)
+```
+
+# Data Processing
+
+The second question that we are trying to answer is Across the United States, which types of events have the greatest economic consequences?
+
+To answer this we first do a little data exploration. The column PROPDMGEXP contains units of the property damage being caused. B being billions is the highest unit. So let us first find how many events caused property damages in billions.
+
+```{r}
+nrow(data[which(data$PROPDMGEXP == 'B' | data$CROPDMGEXP == 'B'),])
+```
+
+So, there are 47 events that caused property damages in billions. Now we see the number of unique event types that caused billions of property damages.
+
+```{r}
+length(unique(data[which(data$PROPDMGEXP == 'B' | data$CROPDMGEXP == 'B'),]$EVTYPE))
+```
+
+So we see that there are a total of 23 event types that caused property damages in billions. So our top 10 list can come only by considering property damages in billions.
+
+The pre processing that we need to do is as follows
+
+```{r}
+library(dplyr)
+library(reshape2)
+```
+First we filter out the rows that has property or crop damages in billions and then among those rows create a data frame with EVTYPE, PROPDMG, CROPDMG, PROPDMGEXP and CROPDMGEXP as columns. the EXP columns contains units. Such as B for billions , M for millions and K for thousands. We thus calculate the total damage by multiplying the property and crop damage with respective units and then adding them up. Lastly we divide the total damage by 10^9 to convert them back to billions. Then we shape the data that in such a way that it has event type and the total property and crop damage due to such an event.
+
+```{r}
+reqdData <- data %>% filter(PROPDMGEXP == 'B' | CROPDMGEXP == 'B') %>% select(EVTYPE, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
+reqdData$PROPDMG[which(reqdData$PROPDMGEXP == 'B')] <- reqdData$PROPDMG[which(reqdData$PROPDMGEXP == 'B')] * 1000000000
+reqdData$PROPDMG[which(reqdData$PROPDMGEXP == 'M')] <- reqdData$PROPDMG[which(reqdData$PROPDMGEXP == 'M')] * 1000000
+reqdData$PROPDMG[which(reqdData$PROPDMGEXP == 'K')] <- reqdData$PROPDMG[which(reqdData$PROPDMGEXP == 'K')] * 1000
+reqdData$CROPDMG[which(reqdData$CROPDMGEXP == 'B')] <- reqdData$CROPDMG[which(reqdData$CROPDMGEXP == 'B')] * 1000000000
+reqdData$CROPDMG[which(reqdData$CROPDMGEXP == 'M')] <- reqdData$CROPDMG[which(reqdData$CROPDMGEXP == 'M')] * 1000000
+reqdData$CROPDMG[which(reqdData$CROPDMGEXP == 'K')] <- reqdData$CROPDMG[which(reqdData$CROPDMGEXP == 'K')] * 1000
+reqdData <- mutate(reqdData, TOTDMG = (PROPDMG + CROPDMG) / 1000000000)
+meltedData <- melt(reqdData,id=c("EVTYPE"), measure.vars=c("TOTDMG"))
+castedData <- dcast(meltedData,EVTYPE~variable,fun.aggregate=sum)
+```
+
+# Results
+
+After pre processing the data we now try to come up with a result with which we try to answer the intended question.
+To do so we simply arrange the data in descending order of total damage. Seeing the top 10 of such a data will reveal the types of events that had the greatest economic consequences.
+
+```{r}
+castedData <- arrange(castedData,desc(TOTDMG))
+renamedData <- rename(castedData, "Event Type" = EVTYPE, "Damage in Billions" = TOTDMG)
+head(renamedData, 10)
+```
+
+Here is a bar plot showing the top 10 event types and the total economic damage caused by these events. This also shows FLOOD as the event type that caused major economic consequence.
+
+```{r fig.height=6, fig.width = 12}
+par(oma=c(6,0,0,0))
+castedData$EVTYPE <- as.character(castedData$EVTYPE)
+barplot(xtabs(TOTDMG~EVTYPE,data=head(castedData,10)),las=2, main = "Top 10 Event Types that caused major economic consequences")
+```
