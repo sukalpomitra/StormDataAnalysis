@@ -1,0 +1,84 @@
+---
+title: "Investigation of exp distribution in R"
+author: "Sukalpo Mitra"
+date: "Sunday, May 24, 2015"
+output: pdf_document
+---
+
+#Overview
+
+In this project we will investigate the exponential distribution in R and compare it with the Central Limit Theorem. The exponential distribution can be simulated in R with rexp(n, lambda) where lambda is the rate parameter. The mean of exponential distribution is 1/lambda and the standard deviation is also 1/lambda. lambda is set to 0.2 for all of the simulations. We will investigate the distribution of averages of 40 exponentials. Note that we will need to do a thousand simulations.
+
+#Simulation
+
+```{r}
+set.seed(820)
+lambda = 0.2
+x <- apply(matrix(rexp(40000,lambda),1000),1,mean)
+```
+
+The above code stores 1000 averages, each of a sample of 40 random exponential with lambda as the rate parameter in a variable called x.
+
+#Sample Mean versus Theoretical Mean:
+
+Sample mean is as follows 
+
+```{r}
+round(mean(x))
+```
+
+The theoritical mean is
+
+```{r}
+1/lambda
+```
+
+The following histogram shows the theoritical and analytical mean
+
+```{r}
+hist(x, xlab = "mean", main = "Exponential Distribution")
+abline(v = round(mean(x)), col = "red")
+abline(v = 1/lambda, col = "blue")
+```
+
+#Sample Variance versus Theoretical Variance:
+
+Sample variance is as follows
+
+```{r}
+round(var(x),1)
+```
+
+Theoritical variance is as follows
+
+```{r}
+round((1/lambda/sqrt(40))^2,1)
+```
+
+The following histogram shows the theoritical and analytical variance
+
+```{r}
+hist(x, xlab = "variance", main = "Exponential Distribution")
+abline(v = round(var(x),2) + mean(x), col = "red")
+abline(v = mean(x) - round(var(x),2), col = "red")
+abline(v = round((1/lambda/sqrt(40))^2,2) + mean(x), col = "blue")
+abline(v = mean(x) - round((1/lambda/sqrt(40))^2,2), col = "blue")
+legend("topright", c("Theoritical Variance", "Analytical Variance"), col=c("blue", "red"), lwd=10)
+```
+
+The variance when rounded to 2 decimal places are
+```{r}
+round(var(x),2)
+round((1/lambda/sqrt(40))^2,2)
+```
+
+The difference is within 6% which is very less and as well when rounded to 1 decimal place it's almost same.
+
+#Distribution
+
+```{r}
+xfit <- seq(min(x), max(x), length=100)
+yfit <- dnorm(xfit, mean=1/lambda, sd=(1/lambda/sqrt(40)))
+hist(x,breaks=40,prob=T,col="red",xlab = "means",main="Distribution",ylab="density")
+lines(xfit, yfit, pch=22, col="black", lty=5)
+```

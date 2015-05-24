@@ -1,0 +1,51 @@
+---
+title: "ToothGrowth Analysis"
+author: "Sukalpo Mitra"
+date: "Sunday, May 24, 2015"
+output: pdf_document
+---
+
+We first load the ToothGrowth data in R
+
+```{r}
+library(datasets)
+data(ToothGrowth)
+```
+
+A basic summary of the data is as follows
+
+```{r}
+summary(ToothGrowth)
+```
+
+An exploratory boxplot is done on the data
+
+```{r}
+library(ggplot2)
+ggplot(ToothGrowth, aes(x=factor(dose), y=len, fill=factor(dose)))+geom_boxplot()+facet_grid(.~supp)+ggtitle("Analyzing ToothGrowth data")
+```
+
+Dividing the dataset in 3 parts according to doses
+
+```{r}
+doseA <- (subset(ToothGrowth,ToothGrowth$dose == 0.5))
+doseB <- (subset(ToothGrowth,ToothGrowth$dose == 1.0))
+doseC <- (subset(ToothGrowth,ToothGrowth$dose == 2.0))
+```
+
+T-tests conducted on these three separate datasets
+
+```{r}
+t.test(len~supp,paired=F,var.equal=F,data=doseA)
+t.test(len~supp,paired=F,var.equal=F,data=doseB)
+t.test(len~supp,paired=F,var.equal=F,data=doseC)
+```
+
+#Conclusion
+
+From the exploratory boxplot it is evident that length of tooth growth is more in support group OJ and with dose 2.0.
+From the p values or t intervals of doseA and doseB dataset we see that the difference in mean of the tooth length for support OJ and VC are quite large as they are quite far from the hypothesized mean of 0. But the mean of tooth length  in dataset doseC for support VC and OJ are quite near.
+
+From the confidence interval we also see that for dataset dosec the interval has 0 as the mean too which means that for dose = 2.0 any support group may be effective for tooth growth.
+
+For loser doses that is dataset doseA and doseB the confidence interval lies above 0 stating that there is evidence in tooth growth.
